@@ -1,297 +1,401 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ ANTIGRAVITY // TOKEN MONITOR</title>
-    <!-- Cargamos Chart.js para el gráfico central -->
-    <script src="https://jsdelivr.net"></script>
+    <title>AI Quota Command Center</title>
     <style>
-        :root {
-            --bg-dark: #060913;
-            --panel-bg: rgba(13, 20, 38, 0.65);
-            --border-neon: rgba(0, 242, 254, 0.25);
-            --cyan-neon: #00f2fe;
-            --gemini-blue: #4285F4;
-            --claude-orange: #d97706;
-            --text-main: #e2e8f0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap');
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Courier New', Courier, monospace;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            overflow-x: hidden;
+            background-color: #060913;
+            color: #e0e6ed;
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
         }
 
-        /* Fondo Animado Estilo Hacker Matrix */
-        #matrix-bg {
+        /* Matrix Canvas Background */
+        #matrix-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -1;
-            opacity: 0.15;
+            z-index: 0;
+            opacity: 0.12; /* Muy baja opacidad para no saturar */
+            pointer-events: none;
         }
 
-        /* Contenedor Principal Elegante (Glassmorphism) */
-        .terminal-panel {
-            background: var(--panel-bg);
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1000px;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+        }
+
+        /* Glassmorphism Panel */
+        .panel {
+            background: rgba(10, 15, 30, 0.55);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-neon);
-            border-radius: 16px;
-            padding: 35px;
-            width: 100%;
-            max-width: 950px;
-            box-shadow: 0 0 40px rgba(0, 242, 254, 0.1);
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 40px;
-            position: relative;
-        }
-
-        @media (max-width: 768px) {
-            .terminal-panel { grid-template-columns: 1fr; }
-        }
-
-        /* Líneas de Escaneo de Pantalla (Efecto CRT Hacker) */
-        .terminal-panel::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 10;
-            background-size: 100% 4px, 6px 100%;
-            pointer-events: none;
-            border-radius: 16px;
-        }
-
-        /* Encabezado */
-        .header-section {
-            grid-column: 1 / -1;
-            border-bottom: 1px dashed var(--border-neon);
-            padding-bottom: 20px;
+            border: 1px solid rgba(0, 229, 255, 0.15);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.4s ease;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
         }
 
-        .status-badge {
-            background: rgba(0, 242, 254, 0.1);
-            border: 1px solid var(--cyan-neon);
-            color: var(--cyan-neon);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+        .panel:hover {
+            transform: translateY(-8px);
+            border-color: rgba(0, 229, 255, 0.4);
+        }
+
+        .panel.claude {
+            border-color: rgba(255, 157, 0, 0.15);
+        }
+
+        .panel.claude:hover {
+            border-color: rgba(255, 157, 0, 0.4);
+        }
+
+        .panel-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 2.5rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            animation: pulse 2s infinite;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1.5rem;
         }
 
-        h1 {
-            font-size: 24px;
-            letter-spacing: 3px;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+        .gemini-title {
+            color: #00e5ff;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
         }
 
-        /* Listado de Métricas y Barras */
-        .metrics-list {
+        .claude-title {
+            color: #ff9d00;
+            text-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+            width: 100%;
+        }
+
+        @media (min-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .stat-block {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 25px;
+            align-items: center;
+            text-align: center;
         }
 
-        .ai-row {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
+        .stat-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #8b9bb4;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Circular Progress Rings */
+        .progress-circle {
             position: relative;
+            width: 130px;
+            height: 130px;
+            margin-bottom: 1.5rem;
         }
 
-        .ai-info {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .ai-name {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: bold;
-            font-size: 15px;
-        }
-
-        /* Logos de las IA construidos con SVG Inline */
-        .ai-logo {
-            width: 20px;
-            height: 20px;
-        }
-
-        .token-counter {
-            color: var(--cyan-neon);
-            font-size: 16px;
-        }
-
-        /* Barras de Animación Futuristas */
-        .progress-bar-container {
+        .progress-circle svg {
             width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
             height: 100%;
-            width: 0%;
-            transition: width 1.5s cubic-bezier(0.1, 1, 0.1, 1);
-            box-shadow: 0 0 8px currentColor;
+            transform: rotate(-90deg);
         }
 
-        /* Sección del Gráfico */
-        .chart-box {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+        .progress-circle circle {
+            fill: none;
+            stroke-width: 7;
+            stroke-linecap: round;
         }
 
-        #chart-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 280px;
-            height: 280px;
+        .progress-circle .bg-circle {
+            stroke: rgba(255, 255, 255, 0.06);
         }
 
-        .chart-center-text {
+        .progress-circle .fg-circle {
+            stroke-dasharray: 377; /* 2 * PI * r (r=60) */
+            stroke-dashoffset: 377;
+            transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Colores dinámicos neón por requerimiento */
+        .gemini-weekly .fg-circle, .gemini-five .fg-circle {
+            stroke: #00e5ff;
+            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
+        }
+
+        .claude-weekly .fg-circle {
+            stroke: #ffaa00; /* Naranja/Amarillo de advertencia */
+            filter: drop-shadow(0 0 8px rgba(255, 170, 0, 0.5));
+        }
+
+        .claude-five .fg-circle {
+            stroke: #00ff66; /* Verde neón brillante */
+            filter: drop-shadow(0 0 8px rgba(0, 255, 102, 0.5));
+        }
+
+        .progress-text {
             position: absolute;
-            top: 53%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            text-align: center;
-            z-index: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
         }
 
-        .chart-center-text p { font-size: 11px; color: #64748b; text-transform: uppercase; }
-        .chart-center-text span { font-size: 22px; color: #fff; font-weight: bold; }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
-            50% { opacity: 1; box-shadow: 0 0 15px rgba(0, 242, 254, 0.6); }
-            100% { opacity: 0.6; box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
+        .stat-desc {
+            font-size: 0.8rem;
+            color: #6c7d9c;
+            line-height: 1.5;
+            max-width: 100%;
+            word-wrap: break-word;
+            padding: 0 10px;
         }
+
+        /* Branding/Logotipo del sistema */
+        .sys-header {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            z-index: 2;
+        }
+
+        .sys-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #4a5c7a;
+            letter-spacing: 2px;
+        }
+        
+        .sys-header span {
+            color: #00e5ff;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
+        }
+
     </style>
 </head>
 <body>
 
-    <!-- Canvas para el fondo de código estilo Hacker/Matrix -->
-    <canvas id="matrix-bg"></canvas>
+    <!-- Fondo de Lluvia Binaria -->
+    <canvas id="matrix-canvas"></canvas>
 
-    <div class="terminal-panel">
-        
-        <div class="header-section">
-            <div>
-                <h1>🔮 AG_CORE // QUANTUM_MONITOR</h1>
-                <span style="color: #64748b; font-size: 11px; letter-spacing: 1px;">SISTEMA CENTRAL DE MÉTRICAS DE GOOGLE ANTIGRAVITY IDE</span>
+    <div class="sys-header">
+        <h1>SYS.MONITOR // <span>QUOTA.TRACKER</span></h1>
+    </div>
+
+    <div class="container">
+        <!-- Panel de Gemini -->
+        <div class="panel">
+            <div class="panel-title gemini-title">
+                🤖 Gemini Models
             </div>
-            <div class="status-badge">● ONLINE</div>
-        </div>
-
-        <!-- Panel Izquierdo: Barras y Emojis -->
-        <div class="metrics-list">
-            
-            <!-- Fila Gemini -->
-            <div class="ai-row" style="border-left: 3px solid var(--gemini-blue);">
-                <div class="ai-info">
-                    <div class="ai-name">
-                        <!-- SVG Logo Gemini -->
-                        <svg class="ai-logo" viewBox="0 0 24 24" fill="var(--gemini-blue)"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
-                        <span>GEMINI ECOSYSTEM 🤖</span>
+            <div class="stats-grid">
+                <!-- Gemini Semanal -->
+                <div class="stat-block">
+                    <div class="stat-title">Weekly Limit</div>
+                    <div class="progress-circle gemini-weekly">
+                        <svg viewBox="0 0 140 140">
+                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+                            <circle class="fg-circle" cx="70" cy="70" r="60" id="gemini-weekly-circle"></circle>
+                        </svg>
+                        <div class="progress-text" id="gemini-weekly-val">0%</div>
                     </div>
-                    <div class="token-counter" id="txt-gemini">0 TKN</div>
+                    <div class="stat-desc" id="gemini-weekly-desc">Cargando datos...</div>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="bar-gemini" style="background-color: var(--gemini-blue); color: var(--gemini-blue);"></div>
-                </div>
-            </div>
-
-            <!-- Fila Claude -->
-            <div class="ai-row" style="border-left: 3px solid var(--claude-orange);">
-                <div class="ai-info">
-                    <div class="ai-name">
-                        <!-- SVG Logo Anthropic/Claude (Estilizado) -->
-                        <svg class="ai-logo" viewBox="0 0 24 24" fill="var(--claude-orange)"><path d="M12 2L4 22H7.5L9.5 16.5H14.5L16.5 22H20L12 2ZM10.5 13.5L12 9L13.5 13.5H10.5Z"/></svg>
-                        <span>CLAUDE CORE 🧠</span>
+                <!-- Gemini 5-Horas -->
+                <div class="stat-block">
+                    <div class="stat-title">Five Hour Limit</div>
+                    <div class="progress-circle gemini-five">
+                        <svg viewBox="0 0 140 140">
+                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+                            <circle class="fg-circle" cx="70" cy="70" r="60" id="gemini-five-circle"></circle>
+                        </svg>
+                        <div class="progress-text" id="gemini-five-val">0%</div>
                     </div>
-                    <div class="token-counter" id="txt-claude">0 TKN</div>
+                    <div class="stat-desc" id="gemini-five-desc">Cargando datos...</div>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="bar-claude" style="background-color: var(--claude-orange); color: var(--claude-orange);"></div>
-                </div>
-            </div>
-
-            <!-- Fila Otros -->
-            <div class="ai-row" style="border-left: 3px solid var(--cyan-neon);">
-                <div class="ai-info">
-                    <div class="ai-name">
-                        <span style="font-size: 20px; line-height: 1;">⚙️</span>
-                        <span>AG_KERNEL SYSTEM 🛸</span>
-                    </div>
-                    <div class="token-counter" id="txt-otros">0 TKN</div>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="bar-otros" style="background-color: var(--cyan-neon); color: var(--cyan-neon);"></div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Panel Derecho: Gráfico de Radar/Dona -->
-        <div class="chart-box">
-            <div id="chart-wrapper">
-                <div class="chart-center-text">
-                    <p>TOTAL</p>
-                    <span id="total-global">0</span>
-                </div>
-                <canvas id="radarConsumo"></canvas>
             </div>
         </div>
 
+        <!-- Panel de Claude & GPT -->
+        <div class="panel claude">
+            <div class="panel-title claude-title">
+                🧠 Claude & GPT
+            </div>
+            <div class="stats-grid">
+                <!-- Claude Semanal -->
+                <div class="stat-block">
+                    <div class="stat-title">Weekly Limit</div>
+                    <div class="progress-circle claude-weekly">
+                        <svg viewBox="0 0 140 140">
+                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+                            <circle class="fg-circle" cx="70" cy="70" r="60" id="claude-weekly-circle"></circle>
+                        </svg>
+                        <div class="progress-text" id="claude-weekly-val">0%</div>
+                    </div>
+                    <div class="stat-desc" id="claude-weekly-desc">Cargando datos...</div>
+                </div>
+                <!-- Claude 5-Horas -->
+                <div class="stat-block">
+                    <div class="stat-title">Five Hour Limit</div>
+                    <div class="progress-circle claude-five">
+                        <svg viewBox="0 0 140 140">
+                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+                            <circle class="fg-circle" cx="70" cy="70" r="60" id="claude-five-circle"></circle>
+                        </svg>
+                        <div class="progress-text" id="claude-five-val">0%</div>
+                    </div>
+                    <div class="stat-desc" id="claude-five-desc">Cargando datos...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- ANIMACIÓN 1: Fondo de Lluvia de Código (Hacker Matrix) ---
-        const canvas = document.getElementById('matrix-bg');
-        const ctxBg = canvas.getContext('2d');
-        
-        function resizeCanvas() {
+        // --- 1. Animación del Canvas Matrix ---
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*<>{}[]';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(6, 9, 19, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00e5ff'; // Cian característico
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        });
 
-        const caracteres = "010101ABCDEFGHIJKLMNOPQRSTUVWXYZ<>[]=/+*#%$_⚡🔮⚙️";
-        const arrayCarac = caracteres.split("");
-        const fontSize = 14;
-Usa el código con precaución.const columnas = canvas.width / fontSize;const gotas = Array(Math.floor(columnas)).fill(1);function drawMatrix() {ctxBg.fillStyle = "rgba(6, 9, 19, 0.06)";ctxBg.fillRect(0, 0, canvas.width, canvas.height);ctxBg.fillStyle = "#00f2fe";ctxBg.font = fontSize + "px monospace";for(let i = 0; i < gotas.length; i++) {const text = arrayCarac[Math.floor(Math.random() * arrayCarac.length)];ctxBg.fillText(text, i * fontSize, gotas[i] * fontSize);if(gotas[i] * fontSize > canvas.height && Math.random() > 0.975) {gotas[i] = 0;}gotas[i]++;}}setInterval(drawMatrix, 35);// --- ANIMACIÓN 2: Lector del JSON y Gráficos Estilizados ---fetch('tokens.json').then(res => res.json()).then(data => {const geminiVal = data["Gemini Models"] || 0;const claudeVal = data["Claude Models"] || 0;const otrosVal = data["Otros Modelos"] || 0;const total = geminiVal + claudeVal + otrosVal;// Modificar textos en pantalladocument.getElementById('txt-gemini').innerText = geminiVal.toLocaleString() + " TKN";document.getElementById('txt-claude').innerText = claudeVal.toLocaleString() + " TKN";document.getElementById('txt-otros').innerText = otrosVal.toLocaleString() + " TKN";document.getElementById('total-global').innerText = total.toLocaleString();// Calcular porcentajes lógicos para las barras de progreso animadasconst maxVal = Math.max(geminiVal, claudeVal, otrosVal, 1);document.getElementById('bar-gemini').style.width = ((geminiVal / maxVal) * 100) + "%";document.getElementById('bar-claude').style.width = ((claudeVal / maxVal) * 100) + "%";document.getElementById('bar-otros').style.width = ((otrosVal / maxVal) * 100) + "%";// Inicializar Gráfico de Dona de Alta Tecnologíaconst ctxChart = document.getElementById('radarConsumo').getContext('2d');new Chart(ctxChart, {type: 'doughnut',data: {labels: ['Gemini', 'Claude', 'Kernel System'],datasets: [{data: [geminiVal, claudeVal, otrosVal],backgroundColor: ['#4285F4', '#d97706', '#00f2fe'],borderWidth: 1,borderColor: '#060913',hoverOffset: 10}]},options: {responsive: true,maintainAspectRatio: false,plugins: { legend: { display: false } },cutout: '82%'}});}).catch(err => console.error("Error al interceptar el flujo de datos:", err));
+        // --- 2. Lógica UI y Anillos SVG ---
+        function setProgress(circleId, textId, percent) {
+            const circle = document.getElementById(circleId);
+            const textElement = document.getElementById(textId);
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            const offset = circumference - (percent / 100) * circumference;
+            
+            // Forzamos reflow para garantizar la animación
+            circle.getBoundingClientRect();
+            circle.style.strokeDashoffset = offset;
+            
+            // Animación progresiva de los números (Counter)
+            let current = 0;
+            const duration = 1800; // ms
+            const stepTime = percent > 0 ? Math.abs(Math.floor(duration / percent)) : 0;
+            
+            if (percent > 0) {
+                const timer = setInterval(() => {
+                    current += 1;
+                    textElement.textContent = current + '%';
+                    if (current >= percent) clearInterval(timer);
+                }, stepTime);
+            } else {
+                textElement.textContent = '0%';
+            }
+        }
+
+        // --- 3. Consumo del tokens.json local ---
+        async function fetchAndRenderTokens() {
+            try {
+                const response = await fetch('tokens.json');
+                if (!response.ok) throw new Error("No se pudo cargar el archivo local");
+                const data = await response.json();
+
+                // Renderizado Gemini
+                document.getElementById('gemini-weekly-desc').textContent = data.gemini.weekly.text;
+                setProgress('gemini-weekly-circle', 'gemini-weekly-val', data.gemini.weekly.percent);
+                
+                document.getElementById('gemini-five-desc').textContent = data.gemini.five_hour.text;
+                setProgress('gemini-five-circle', 'gemini-five-val', data.gemini.five_hour.percent);
+
+                // Renderizado Claude & GPT
+                document.getElementById('claude-weekly-desc').textContent = data.claude_gpt.weekly.text;
+                setProgress('claude-weekly-circle', 'claude-weekly-val', data.claude_gpt.weekly.percent);
+
+                document.getElementById('claude-five-desc').textContent = data.claude_gpt.five_hour.text;
+                setProgress('claude-five-circle', 'claude-five-val', data.claude_gpt.five_hour.percent);
+
+            } catch (error) {
+                console.error("Error cargando los tokens (asegúrate de correr el archivo .py primero):", error);
+                document.querySelectorAll('.stat-desc').forEach(el => el.textContent = "Data offline");
+            }
+        }
+
+        // Retraso intencional para permitir que el DOM renderice los estados 0% primero
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(fetchAndRenderTokens, 300);
+        });
+    </script>
+</body>
+</html>
