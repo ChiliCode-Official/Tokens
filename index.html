@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Quota Command Center</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Space+Mono:wght@700&display=swap');
+
+        :root {
+            --bg-base: #060608;
+            --panel-bg: rgba(20, 20, 24, 0.45);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            
+            --gemini-start: #00e5ff;
+            --gemini-end: #0077ff;
+            
+            --claude-start: #ff9d00;
+            --claude-end: #ff3366;
+            
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
 
         * {
             box-sizing: border-box;
@@ -14,388 +29,340 @@
         }
 
         body {
-            background-color: #060913;
-            color: #e0e6ed;
-            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        /* Matrix Canvas Background */
-        #matrix-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            opacity: 0.12; /* Muy baja opacidad para no saturar */
-            pointer-events: none;
-        }
-
-        /* Main Container */
-        .container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 1000px;
             padding: 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2.5rem;
+            overflow: hidden;
+            position: relative;
         }
 
-        /* Glassmorphism Panel */
-        .panel {
-            background: rgba(10, 15, 30, 0.55);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(0, 229, 255, 0.15);
-            border-radius: 20px;
-            padding: 2.5rem 2rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.4s ease;
+        /* Ambient Aurora Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.5;
+            z-index: 0;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .orb-1 { width: 400px; height: 400px; background: rgba(0, 229, 255, 0.15); top: -100px; left: 10%; }
+        .orb-2 { width: 500px; height: 500px; background: rgba(138, 43, 226, 0.15); bottom: -150px; right: 10%; animation-delay: -5s; }
+        .orb-3 { width: 300px; height: 300px; background: rgba(255, 157, 0, 0.1); top: 40%; left: 40%; animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, -50px) scale(1.2); }
+        }
+
+        /* Container */
+        .dashboard {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 800px;
             display: flex;
             flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Pill Panel */
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--panel-border);
+            border-radius: 40px;
+            padding: 2.5rem 3rem;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .panel:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        @keyframes slideUp {
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Close Button inside panel (like the reference) */
+        .close-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
             align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.05);
         }
 
-        .panel:hover {
-            transform: translateY(-8px);
-            border-color: rgba(0, 229, 255, 0.4);
+        .close-btn::before, .close-btn::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 2px;
+            background: #8b9bb4;
+            border-radius: 2px;
         }
 
-        .panel.claude {
-            border-color: rgba(255, 157, 0, 0.15);
-        }
+        .close-btn::before { transform: rotate(45deg); }
+        .close-btn::after { transform: rotate(-45deg); }
 
-        .panel.claude:hover {
-            border-color: rgba(255, 157, 0, 0.4);
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .panel-title {
-            font-size: 1.6rem;
-            font-weight: 600;
-            margin-bottom: 2.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: 100%;
-            justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding-bottom: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        .gemini-title {
-            color: #00e5ff;
-            text-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
-        }
-
-        .claude-title {
-            color: #ff9d00;
-            text-shadow: 0 0 15px rgba(255, 157, 0, 0.4);
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2.5rem;
-            width: 100%;
-        }
-
-        @media (min-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        .stat-block {
+        /* Progress Item */
+        .progress-item {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
+            gap: 1.2rem;
         }
 
-        .stat-title {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #8b9bb4;
-            margin-bottom: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
-        /* Circular Progress Rings */
-        .progress-circle {
-            position: relative;
-            width: 130px;
-            height: 130px;
-            margin-bottom: 1.5rem;
+        .progress-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .progress-circle svg {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
+        .progress-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
         }
 
-        .progress-circle circle {
-            fill: none;
-            stroke-width: 7;
-            stroke-linecap: round;
-        }
-
-        .progress-circle .bg-circle {
-            stroke: rgba(255, 255, 255, 0.06);
-        }
-
-        .progress-circle .fg-circle {
-            stroke-dasharray: 377; /* 2 * PI * r (r=60) */
-            stroke-dashoffset: 377;
-            transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Colores dinámicos neón por requerimiento */
-        .gemini-weekly .fg-circle, .gemini-five .fg-circle {
-            stroke: #00e5ff;
-            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
-        }
-
-        .claude-weekly .fg-circle {
-            stroke: #ffaa00; /* Naranja/Amarillo de advertencia */
-            filter: drop-shadow(0 0 8px rgba(255, 170, 0, 0.5));
-        }
-
-        .claude-five .fg-circle {
-            stroke: #00ff66; /* Verde neón brillante */
-            filter: drop-shadow(0 0 8px rgba(0, 255, 102, 0.5));
-        }
-
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: 'JetBrains Mono', monospace;
+        .progress-percent {
+            font-family: 'Space Mono', monospace;
             font-size: 1.6rem;
             font-weight: 700;
-            color: #ffffff;
-            text-shadow: 0 0 10px rgba(255,255,255,0.2);
         }
 
-        .stat-desc {
-            font-size: 0.8rem;
-            color: #6c7d9c;
-            line-height: 1.5;
-            max-width: 100%;
-            word-wrap: break-word;
-            padding: 0 10px;
+        /* Horizontal Bar */
+        .bar-track {
+            width: 100%;
+            height: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 20px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+            padding: 2px;
         }
 
-        /* Branding/Logotipo del sistema */
-        .sys-header {
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 20px;
+            transition: width 1.8s cubic-bezier(0.25, 1, 0.3, 1);
+            position: relative;
+        }
+
+        /* Gradients and Glows */
+        .fill-gemini {
+            background: linear-gradient(90deg, var(--gemini-start), var(--gemini-end));
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+        }
+
+        .fill-claude {
+            background: linear-gradient(90deg, var(--claude-start), var(--claude-end));
+            box-shadow: 0 0 20px rgba(255, 157, 0, 0.6);
+        }
+
+        .fill-success {
+            background: linear-gradient(90deg, #00ff66, #00b347);
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.6);
+        }
+
+        /* Inner light highlight for the bar to give it a 3D pill look */
+        .bar-fill::after {
+            content: '';
             position: absolute;
-            top: 2rem;
-            left: 2rem;
-            z-index: 2;
-        }
-
-        .sys-header h1 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            color: #4a5c7a;
-            letter-spacing: 2px;
-        }
-        
-        .sys-header span {
-            color: #00e5ff;
-            text-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
+            top: 0; left: 0; right: 0;
+            height: 40%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
+            border-radius: 20px;
         }
 
     </style>
 </head>
 <body>
 
-    <!-- Fondo de Lluvia Binaria -->
-    <canvas id="matrix-canvas"></canvas>
+    <!-- Aurora Background Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <div class="sys-header">
-        <h1>SYS.MONITOR // <span>QUOTA.TRACKER</span></h1>
-    </div>
-
-    <div class="container">
-        <!-- Panel de Gemini -->
+    <div class="dashboard">
+        
+        <!-- Gemini Panel -->
         <div class="panel">
-            <div class="panel-title gemini-title">
-                🤖 Gemini Models
+            <div class="close-btn"></div>
+            <div class="panel-header">
+                <div class="panel-title">Gemini Series</div>
             </div>
-            <div class="stats-grid">
-                <!-- Gemini Semanal -->
-                <div class="stat-block">
-                    <div class="stat-title">Weekly Limit</div>
-                    <div class="progress-circle gemini-weekly">
-                        <svg viewBox="0 0 140 140">
-                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
-                            <circle class="fg-circle" cx="70" cy="70" r="60" id="gemini-weekly-circle"></circle>
-                        </svg>
-                        <div class="progress-text" id="gemini-weekly-val">0%</div>
+
+            <!-- Weekly -->
+            <div class="progress-item">
+                <div class="progress-header">
+                    <div>
+                        <div class="progress-label">Weekly Limit</div>
+                        <div class="progress-desc" id="gemini-weekly-desc">Initializing...</div>
                     </div>
-                    <div class="stat-desc" id="gemini-weekly-desc">Cargando datos...</div>
+                    <div class="progress-percent" id="gemini-weekly-val">0%</div>
                 </div>
-                <!-- Gemini 5-Horas -->
-                <div class="stat-block">
-                    <div class="stat-title">Five Hour Limit</div>
-                    <div class="progress-circle gemini-five">
-                        <svg viewBox="0 0 140 140">
-                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
-                            <circle class="fg-circle" cx="70" cy="70" r="60" id="gemini-five-circle"></circle>
-                        </svg>
-                        <div class="progress-text" id="gemini-five-val">0%</div>
+                <div class="bar-track">
+                    <div class="bar-fill fill-gemini" id="gemini-weekly-bar"></div>
+                </div>
+            </div>
+
+            <!-- 5 Hour -->
+            <div class="progress-item">
+                <div class="progress-header">
+                    <div>
+                        <div class="progress-label">5-Hour Window</div>
+                        <div class="progress-desc" id="gemini-five-desc">Initializing...</div>
                     </div>
-                    <div class="stat-desc" id="gemini-five-desc">Cargando datos...</div>
+                    <div class="progress-percent" id="gemini-five-val">0%</div>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill fill-gemini" id="gemini-five-bar"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Panel de Claude & GPT -->
-        <div class="panel claude">
-            <div class="panel-title claude-title">
-                🧠 Claude & GPT
+        <!-- Claude / GPT Panel -->
+        <div class="panel">
+            <div class="close-btn"></div>
+            <div class="panel-header">
+                <div class="panel-title">Claude & GPT</div>
             </div>
-            <div class="stats-grid">
-                <!-- Claude Semanal -->
-                <div class="stat-block">
-                    <div class="stat-title">Weekly Limit</div>
-                    <div class="progress-circle claude-weekly">
-                        <svg viewBox="0 0 140 140">
-                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
-                            <circle class="fg-circle" cx="70" cy="70" r="60" id="claude-weekly-circle"></circle>
-                        </svg>
-                        <div class="progress-text" id="claude-weekly-val">0%</div>
+
+            <!-- Weekly -->
+            <div class="progress-item">
+                <div class="progress-header">
+                    <div>
+                        <div class="progress-label">Weekly Limit</div>
+                        <div class="progress-desc" id="claude-weekly-desc">Initializing...</div>
                     </div>
-                    <div class="stat-desc" id="claude-weekly-desc">Cargando datos...</div>
+                    <div class="progress-percent" id="claude-weekly-val">0%</div>
                 </div>
-                <!-- Claude 5-Horas -->
-                <div class="stat-block">
-                    <div class="stat-title">Five Hour Limit</div>
-                    <div class="progress-circle claude-five">
-                        <svg viewBox="0 0 140 140">
-                            <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
-                            <circle class="fg-circle" cx="70" cy="70" r="60" id="claude-five-circle"></circle>
-                        </svg>
-                        <div class="progress-text" id="claude-five-val">0%</div>
+                <div class="bar-track">
+                    <div class="bar-fill fill-claude" id="claude-weekly-bar"></div>
+                </div>
+            </div>
+
+            <!-- 5 Hour -->
+            <div class="progress-item">
+                <div class="progress-header">
+                    <div>
+                        <div class="progress-label">5-Hour Window</div>
+                        <div class="progress-desc" id="claude-five-desc">Initializing...</div>
                     </div>
-                    <div class="stat-desc" id="claude-five-desc">Cargando datos...</div>
+                    <div class="progress-percent" id="claude-five-val">0%</div>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill fill-claude" id="claude-five-bar"></div>
                 </div>
             </div>
         </div>
+
     </div>
 
     <script>
-        // --- 1. Animación del Canvas Matrix ---
-        const canvas = document.getElementById('matrix-canvas');
-        const ctx = canvas.getContext('2d');
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*<>{}[]';
-        const fontSize = 14;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(1);
-
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(6, 9, 19, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = '#00e5ff'; // Cian característico
-            ctx.font = fontSize + 'px monospace';
-
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars.charAt(Math.floor(Math.random() * chars.length));
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
+        function animateNumber(element, endValue, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                const current = Math.floor(easeProgress * endValue);
+                element.textContent = current + '%';
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.textContent = endValue + '%';
                 }
-                drops[i]++;
-            }
-        }
-        setInterval(drawMatrix, 50);
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
-
-        // --- 2. Lógica UI y Anillos SVG ---
-        function setProgress(circleId, textId, percent) {
-            const circle = document.getElementById(circleId);
-            const textElement = document.getElementById(textId);
-            const radius = circle.r.baseVal.value;
-            const circumference = radius * 2 * Math.PI;
-            
-            circle.style.strokeDasharray = `${circumference} ${circumference}`;
-            const offset = circumference - (percent / 100) * circumference;
-            
-            // Forzamos reflow para garantizar la animación
-            circle.getBoundingClientRect();
-            circle.style.strokeDashoffset = offset;
-            
-            // Animación progresiva de los números (Counter)
-            let current = 0;
-            const duration = 1800; // ms
-            const stepTime = percent > 0 ? Math.abs(Math.floor(duration / percent)) : 0;
-            
-            if (percent > 0) {
-                const timer = setInterval(() => {
-                    current += 1;
-                    textElement.textContent = current + '%';
-                    if (current >= percent) clearInterval(timer);
-                }, stepTime);
-            } else {
-                textElement.textContent = '0%';
-            }
+            };
+            window.requestAnimationFrame(step);
         }
 
-        // --- 3. Consumo del tokens.json local ---
-        async function fetchAndRenderTokens() {
+        function updateBar(barId, textId, percent) {
+            const bar = document.getElementById(barId);
+            const textEl = document.getElementById(textId);
+            
+            if (percent === 100) {
+                bar.className = 'bar-fill fill-success';
+            }
+            
+            setTimeout(() => {
+                bar.style.width = percent + '%';
+                animateNumber(textEl, percent, 2000);
+            }, 300);
+        }
+
+        async function loadDashboard() {
             try {
                 const response = await fetch('tokens.json');
-                if (!response.ok) throw new Error("No se pudo cargar el archivo local");
                 const data = await response.json();
 
-                // Renderizado Gemini
+                // Gemini
                 document.getElementById('gemini-weekly-desc').textContent = data.gemini.weekly.text;
-                setProgress('gemini-weekly-circle', 'gemini-weekly-val', data.gemini.weekly.percent);
-                
                 document.getElementById('gemini-five-desc').textContent = data.gemini.five_hour.text;
-                setProgress('gemini-five-circle', 'gemini-five-val', data.gemini.five_hour.percent);
+                updateBar('gemini-weekly-bar', 'gemini-weekly-val', data.gemini.weekly.percent);
+                updateBar('gemini-five-bar', 'gemini-five-val', data.gemini.five_hour.percent);
 
-                // Renderizado Claude & GPT
+                // Claude & GPT
                 document.getElementById('claude-weekly-desc').textContent = data.claude_gpt.weekly.text;
-                setProgress('claude-weekly-circle', 'claude-weekly-val', data.claude_gpt.weekly.percent);
-
                 document.getElementById('claude-five-desc').textContent = data.claude_gpt.five_hour.text;
-                setProgress('claude-five-circle', 'claude-five-val', data.claude_gpt.five_hour.percent);
+                updateBar('claude-weekly-bar', 'claude-weekly-val', data.claude_gpt.weekly.percent);
+                updateBar('claude-five-bar', 'claude-five-val', data.claude_gpt.five_hour.percent);
 
             } catch (error) {
-                console.error("Error cargando los tokens (asegúrate de correr el archivo .py primero):", error);
-                document.querySelectorAll('.stat-desc').forEach(el => el.textContent = "Data offline");
+                console.error("Error reading tokens.json", error);
             }
         }
 
-        // Retraso intencional para permitir que el DOM renderice los estados 0% primero
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(fetchAndRenderTokens, 300);
-        });
+        window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
