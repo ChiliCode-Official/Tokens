@@ -3,68 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor de Tokens - Antigravity IDE</title>
-    <!-- Cargamos la librería para hacer gráficos bonitos -->
+    <title>⚡ ANTIGRAVITY // TOKEN MONITOR</title>
+    <!-- Cargamos Chart.js para el gráfico central -->
     <script src="https://jsdelivr.net"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
+        :root {
+            --bg-dark: #060913;
+            --panel-bg: rgba(13, 20, 38, 0.65);
+            --border-neon: rgba(0, 242, 254, 0.25);
+            --cyan-neon: #00f2fe;
+            --gemini-blue: #4285F4;
+            --claude-orange: #d97706;
+            --text-main: #e2e8f0;
+        }
+
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Fondo Animado Estilo Hacker Matrix */
+        #matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.15;
+        }
+
+        /* Contenedor Principal Elegante (Glassmorphism) */
+        .terminal-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-neon);
+            border-radius: 16px;
+            padding: 35px;
+            width: 100%;
+            max-width: 950px;
+            box-shadow: 0 0 40px rgba(0, 242, 254, 0.1);
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 40px;
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .terminal-panel { grid-template-columns: 1fr; }
+        }
+
+        /* Líneas de Escaneo de Pantalla (Efecto CRT Hacker) */
+        .terminal-panel::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            border-radius: 16px;
+        }
+
+        /* Encabezado */
+        .header-section {
+            grid-column: 1 / -1;
+            border-bottom: 1px dashed var(--border-neon);
+            padding-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
-            margin-top: 20px;
+
+        .status-badge {
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid var(--cyan-neon);
+            color: var(--cyan-neon);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: pulse 2s infinite;
         }
-        h1 { color: #1a73e8; margin-bottom: 5px; }
-        p { color: #666; font-size: 14px; margin-bottom: 25px; }
-        .chart-box { width: 100%; height: 300px; }
+
+        h1 {
+            font-size: 24px;
+            letter-spacing: 3px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+        }
+
+        /* Listado de Métricas y Barras */
+        .metrics-list {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 25px;
+        }
+
+        .ai-row {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .ai-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .ai-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        /* Logos de las IA construidos con SVG Inline */
+        .ai-logo {
+            width: 20px;
+            height: 20px;
+        }
+
+        .token-counter {
+            color: var(--cyan-neon);
+            font-size: 16px;
+        }
+
+        /* Barras de Animación Futuristas */
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 1.5s cubic-bezier(0.1, 1, 0.1, 1);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Sección del Gráfico */
+        .chart-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #chart-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            height: 280px;
+        }
+
+        .chart-center-text {
+            position: absolute;
+            top: 53%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1;
+        }
+
+        .chart-center-text p { font-size: 11px; color: #64748b; text-transform: uppercase; }
+        .chart-center-text span { font-size: 22px; color: #fff; font-weight: bold; }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
+            50% { opacity: 1; box-shadow: 0 0 15px rgba(0, 242, 254, 0.6); }
+            100% { opacity: 0.6; box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Tokens Consumidos</h1>
-        <p>Google Antigravity IDE • Actualizado automáticamente</p>
+    <!-- Canvas para el fondo de código estilo Hacker/Matrix -->
+    <canvas id="matrix-bg"></canvas>
+
+    <div class="terminal-panel">
         
-        <div class="chart-box">
-            <canvas id="graficoTokens"></canvas>
+        <div class="header-section">
+            <div>
+                <h1>🔮 AG_CORE // QUANTUM_MONITOR</h1>
+                <span style="color: #64748b; font-size: 11px; letter-spacing: 1px;">SISTEMA CENTRAL DE MÉTRICAS DE GOOGLE ANTIGRAVITY IDE</span>
+            </div>
+            <div class="status-badge">● ONLINE</div>
         </div>
+
+        <!-- Panel Izquierdo: Barras y Emojis -->
+        <div class="metrics-list">
+            
+            <!-- Fila Gemini -->
+            <div class="ai-row" style="border-left: 3px solid var(--gemini-blue);">
+                <div class="ai-info">
+                    <div class="ai-name">
+                        <!-- SVG Logo Gemini -->
+                        <svg class="ai-logo" viewBox="0 0 24 24" fill="var(--gemini-blue)"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
+                        <span>GEMINI ECOSYSTEM 🤖</span>
+                    </div>
+                    <div class="token-counter" id="txt-gemini">0 TKN</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="bar-gemini" style="background-color: var(--gemini-blue); color: var(--gemini-blue);"></div>
+                </div>
+            </div>
+
+            <!-- Fila Claude -->
+            <div class="ai-row" style="border-left: 3px solid var(--claude-orange);">
+                <div class="ai-info">
+                    <div class="ai-name">
+                        <!-- SVG Logo Anthropic/Claude (Estilizado) -->
+                        <svg class="ai-logo" viewBox="0 0 24 24" fill="var(--claude-orange)"><path d="M12 2L4 22H7.5L9.5 16.5H14.5L16.5 22H20L12 2ZM10.5 13.5L12 9L13.5 13.5H10.5Z"/></svg>
+                        <span>CLAUDE CORE 🧠</span>
+                    </div>
+                    <div class="token-counter" id="txt-claude">0 TKN</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="bar-claude" style="background-color: var(--claude-orange); color: var(--claude-orange);"></div>
+                </div>
+            </div>
+
+            <!-- Fila Otros -->
+            <div class="ai-row" style="border-left: 3px solid var(--cyan-neon);">
+                <div class="ai-info">
+                    <div class="ai-name">
+                        <span style="font-size: 20px; line-height: 1;">⚙️</span>
+                        <span>AG_KERNEL SYSTEM 🛸</span>
+                    </div>
+                    <div class="token-counter" id="txt-otros">0 TKN</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="bar-otros" style="background-color: var(--cyan-neon); color: var(--cyan-neon);"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Panel Derecho: Gráfico de Radar/Dona -->
+        <div class="chart-box">
+            <div id="chart-wrapper">
+                <div class="chart-center-text">
+                    <p>TOTAL</p>
+                    <span id="total-global">0</span>
+                </div>
+                <canvas id="radarConsumo"></canvas>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // Esta función lee el archivo tokens.json que sube tu script de Python
-        fetch('tokens.json')
-            .then(response => response.json())
-            .then(data => {
-                const ctx = document.getElementById('graficoTokens').getContext('2d');
-                new Chart(ctx, {
-                    type: 'doughnut', // Gráfico de dona moderno
-                    data: {
-                        labels: Object.keys(data),
-                        datasets: [{
-                            data: Object.values(data),
-                            backgroundColor: ['#4285F4', '#34A853', '#FBBC05'] // Colores estilo Google
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
-                    }
-                });
-            })
-            .catch(error => console.error("Error cargando los tokens:", error));
-    </script>
-</body>
-</html>
+        // --- ANIMACIÓN 1: Fondo de Lluvia de Código (Hacker Matrix) ---
+        const canvas = document.getElementById('matrix-bg');
+        const ctxBg = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const caracteres = "010101ABCDEFGHIJKLMNOPQRSTUVWXYZ<>[]=/+*#%$_⚡🔮⚙️";
+        const arrayCarac = caracteres.split("");
+        const fontSize = 14;
+Usa el código con precaución.const columnas = canvas.width / fontSize;const gotas = Array(Math.floor(columnas)).fill(1);function drawMatrix() {ctxBg.fillStyle = "rgba(6, 9, 19, 0.06)";ctxBg.fillRect(0, 0, canvas.width, canvas.height);ctxBg.fillStyle = "#00f2fe";ctxBg.font = fontSize + "px monospace";for(let i = 0; i < gotas.length; i++) {const text = arrayCarac[Math.floor(Math.random() * arrayCarac.length)];ctxBg.fillText(text, i * fontSize, gotas[i] * fontSize);if(gotas[i] * fontSize > canvas.height && Math.random() > 0.975) {gotas[i] = 0;}gotas[i]++;}}setInterval(drawMatrix, 35);// --- ANIMACIÓN 2: Lector del JSON y Gráficos Estilizados ---fetch('tokens.json').then(res => res.json()).then(data => {const geminiVal = data["Gemini Models"] || 0;const claudeVal = data["Claude Models"] || 0;const otrosVal = data["Otros Modelos"] || 0;const total = geminiVal + claudeVal + otrosVal;// Modificar textos en pantalladocument.getElementById('txt-gemini').innerText = geminiVal.toLocaleString() + " TKN";document.getElementById('txt-claude').innerText = claudeVal.toLocaleString() + " TKN";document.getElementById('txt-otros').innerText = otrosVal.toLocaleString() + " TKN";document.getElementById('total-global').innerText = total.toLocaleString();// Calcular porcentajes lógicos para las barras de progreso animadasconst maxVal = Math.max(geminiVal, claudeVal, otrosVal, 1);document.getElementById('bar-gemini').style.width = ((geminiVal / maxVal) * 100) + "%";document.getElementById('bar-claude').style.width = ((claudeVal / maxVal) * 100) + "%";document.getElementById('bar-otros').style.width = ((otrosVal / maxVal) * 100) + "%";// Inicializar Gráfico de Dona de Alta Tecnologíaconst ctxChart = document.getElementById('radarConsumo').getContext('2d');new Chart(ctxChart, {type: 'doughnut',data: {labels: ['Gemini', 'Claude', 'Kernel System'],datasets: [{data: [geminiVal, claudeVal, otrosVal],backgroundColor: ['#4285F4', '#d97706', '#00f2fe'],borderWidth: 1,borderColor: '#060913',hoverOffset: 10}]},options: {responsive: true,maintainAspectRatio: false,plugins: { legend: { display: false } },cutout: '82%'}});}).catch(err => console.error("Error al interceptar el flujo de datos:", err));
